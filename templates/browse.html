@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Projects - Code Marketplace{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Browse Code Projects</h1>
+                <div class="search-bar-inline">
+                    <form action="{{ url_for('browse') }}" method="GET" class="d-flex">
+                        <input type="text" name="q" class="form-control me-2"
+                               placeholder="Search projects..."
+                               value="{{ search_query or '' }}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="language" class="form-label">Language</label>
+                            <select name="language" class="form-select" id="language">
+                                <option value="">All Languages</option>
+                                <option value="python" {% if language == 'python' %}selected{% endif %}>Python</option>
+                                <option value="javascript" {% if language == 'javascript' %}selected{% endif %}>JavaScript</option>
+                                <option value="java" {% if language == 'java' %}selected{% endif %}>Java</option>
+                                <option value="cpp" {% if language == 'cpp' %}selected{% endif %}>C++</option>
+                                <option value="csharp" {% if language == 'csharp' %}selected{% endif %}>C#</option>
+                                <option value="php" {% if language == 'php' %}selected{% endif %}>PHP</option>
+                                <option value="other" {% if language == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select name="category" class="form-select" id="category">
+                                <option value="">All Categories</option>
+                                <option value="web" {% if category == 'web' %}selected{% endif %}>Web Development</option>
+                                <option value="mobile" {% if category == 'mobile' %}selected{% endif %}>Mobile Development</option>
+                                <option value="ml" {% if category == 'ml' %}selected{% endif %}>Machine Learning</option>
+                                <option value="ai" {% if category == 'ai' %}selected{% endif %}>AI</option>
+                                <option value="data" {% if category == 'data' %}selected{% endif %}>Data Science</option>
+                                <option value="game" {% if category == 'game' %}selected{% endif %}>Game Development</option>
+                                <option value="api" {% if category == 'api' %}selected{% endif %}>API/Backend</option>
+                                <option value="other" {% if category == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="min_price" class="form-label">Min Price</label>
+                            <input type="number" name="min_price" class="form-control" id="min_price"
+                                   value="{{ min_price if min_price else '' }}" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="max_price" class="form-label">Max Price</label>
+                            <input type="number" name="max_price" class="form-control" id="max_price"
+                                   value="{{ max_price if max_price else '' }}" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if projects.items %}
+    <div class="row">
+        {% for project in projects.items %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary">{{ project.language.title() }}</span>
+                        <span class="badge bg-secondary">{{ project.category.title() }}</span>
+                    </div>
+                    <h5 class="card-title">{{ project.title }}</h5>
+                    <p class="card-text">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</p>
+
+                    {% set avg_rating = project.get_average_rating() %}
+                    {% if avg_rating > 0 %}
+                    <div class="mb-2">
+                        <div class="d-flex align-items-center">
+                            <div class="stars me-2">
+                                {% for i in range(1, 6) %}
+                                    <i class="fas fa-star{% if i > avg_rating %} text-muted{% else %} text-warning{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">({{ project.get_review_count() }})</small>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if project.get_tags_list() %}
+                    <div class="mb-2">
+                        {% for tag in project.get_tags_list()[:3] %}
+                        <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-eye me-1"></i>{{ project.views }}
+                            <i class="fas fa-download ms-2 me-1"></i>{{ project.get_download_count() }}
+                        </small>
+                        <small class="text-muted">by {{ project.seller.username }}</small>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="h5 mb-0 text-success">₹{{ "%.2f"|format(project.price) }}</span>
+                    <div>
+                        {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('add_to_wishlist', project_id=project.id) }}" class="btn btn-outline-danger btn-sm me-2" title="Add to Wishlist">
+                            <i class="fas fa-heart"></i>
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('product_detail', id=project.id) }}" class="btn btn-primary">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if projects.pages > 1 %}
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="Project pagination">
+                <ul class="pagination justify-content-center">
+                    {% if projects.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('browse', page=projects.prev_num,
+                            language=language, category=category, min_price=min_price, max_price=max_price) }}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in projects.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != projects.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('browse', page=page_num,
+                                    language=language, category=category, min_price=min_price, max_price=max_price) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if projects.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('browse', page=projects.next_num,
+                            language=language, category=category, min_price=min_price, max_price=max_price) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="row">
+        <div class="col-12 text-center">
+            <div class="empty-state py-5">
+                <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                <h3 class="text-muted">No Projects Found</h3>
+                <p class="text-muted">Try adjusting your filters or check back later for new projects.</p>
+                <a href="{{ url_for('browse') }}" class="btn btn-primary">Clear Filters</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

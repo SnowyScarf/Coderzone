@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.title }} - Code Marketplace{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="badge bg-primary me-2">{{ project.language.title() }}</span>
+                            <span class="badge bg-secondary">{{ project.category.title() }}</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="h4 text-success mb-0">₹{{ "%.2f"|format(project.price) }}</div>
+                            <small class="text-muted">One-time purchase</small>
+                        </div>
+                    </div>
+
+                    <h1 class="mb-3">{{ project.title }}</h1>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>by {{ project.seller.username }}
+                                <i class="fas fa-calendar ms-3 me-1"></i>{{ project.created_at.strftime('%B %d, %Y') }}
+                                <i class="fas fa-eye ms-3 me-1"></i>{{ project.views }} views
+                                <i class="fas fa-download ms-3 me-1"></i>{{ project.get_download_count() }} downloads
+                            </small>
+                            {% if current_user.is_authenticated and project.seller_id != current_user.id %}
+                            <div>
+                                {% if is_wishlisted %}
+                                <a href="{{ url_for('remove_from_wishlist', project_id=project.id) }}" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-heart"></i> Remove from Wishlist
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('add_to_wishlist', project_id=project.id) }}" class="btn btn-outline-danger btn-sm">
+                                    <i class="far fa-heart"></i> Add to Wishlist
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% set avg_rating = project.get_average_rating() %}
+                    {% if avg_rating > 0 %}
+                    <div class="mb-4">
+                        <h5>Rating</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="stars me-3">
+                                {% for i in range(1, 6) %}
+                                    <i class="fas fa-star{% if i > avg_rating %} text-muted{% else %} text-warning{% endif %} fa-lg"></i>
+                                {% endfor %}
+                            </div>
+                            <span class="h5 mb-0 me-2">{{ avg_rating }}</span>
+                            <small class="text-muted">({{ project.get_review_count() }} review{% if project.get_review_count() != 1 %}s{% endif %})</small>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <p class="text-muted">{{ project.description }}</p>
+                    </div>
+
+                    {% if project.get_tags_list() %}
+                    <div class="mb-4">
+                        <h5>Tags</h5>
+                        {% for tag in project.get_tags_list() %}
+                        <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <h5>Project Details</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>Language:</strong> {{ project.language.title() }}</li>
+                            <li><strong>Category:</strong> {{ project.category.title() }}</li>
+                            <li><strong>File:</strong> {{ project.filename }}</li>
+                            <li><strong>Upload Date:</strong> {{ project.created_at.strftime('%B %d, %Y') }}</li>
+                        </ul>
+                    </div>
+
+                    {% if current_user.is_authenticated %}
+                        {% if project.seller_id == current_user.id %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>This is your project. You can manage it from your seller dashboard.
+                        </div>
+                        {% elif has_purchased %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>You have already purchased this project.
+                            <a href="{{ url_for('download_project', project_id=project.id) }}" class="btn btn-success ms-2">
+                                <i class="fas fa-download me-1"></i>Download
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="d-grid">
+                            <form action="{{ url_for('buy_project', project_id=project.id) }}" method="POST">
+                                {{ form.csrf_token }}
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-shopping-cart me-2"></i>Buy Now - ₹{{ "%.2f"|format(project.price) }}
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <a href="{{ url_for('login') }}">Login</a> to purchase this project.
+                    </div>
+                    {% endif %}
+
+                    {% if can_review %}
+                    <hr>
+                    <div class="mb-4">
+                        <h5>Leave a Review</h5>
+                        <form method="POST" action="{{ url_for('add_review', project_id=project.id) }}">
+                            {{ review_form.hidden_tag() }}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ review_form.rating.label(class="form-label") }}
+                                    {{ review_form.rating(class="form-select") }}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                {{ review_form.comment.label(class="form-label") }}
+                                {{ review_form.comment(class="form-control", rows="3") }}
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-star me-1"></i>Submit Review
+                            </button>
+                        </form>
+                    </div>
+                    {% elif user_review %}
+                    <hr>
+                    <div class="mb-4">
+                        <h5>Your Review</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="stars me-2">
+                                        {% for i in range(1, 6) %}
+                                            <i class="fas fa-star{% if i > user_review.rating %} text-muted{% else %} text-warning{% endif %}"></i>
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted">{{ user_review.created_at.strftime('%B %d, %Y') }}</small>
+                                </div>
+                                {% if user_review.comment %}
+                                <p class="mb-0">{{ user_review.comment }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if reviews %}
+                    <hr>
+                    <div class="mb-4">
+                        <h5>Customer Reviews ({{ reviews|length }})</h5>
+                        {% for review in reviews %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">{{ review.reviewer.username }}</h6>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="stars me-2">
+                                                {% for i in range(1, 6) %}
+                                                    <i class="fas fa-star{% if i > review.rating %} text-muted{% else %} text-warning{% endif %}"></i>
+                                                {% endfor %}
+                                            </div>
+                                            <small class="text-muted">{{ review.created_at.strftime('%B %d, %Y') }}</small>
+                                        </div>
+                                        {% if review.comment %}
+                                        <p class="mb-0">{{ review.comment }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">Seller Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar-circle me-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">{{ project.seller.username }}</h6>
+                            <small class="text-muted">Seller since {{ project.seller.created_at.strftime('%B %Y') }}</small>
+                        </div>
+                    </div>
+                    <div class="seller-stats">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Projects:</span>
+                            <span class="fw-bold">{{ project.seller.projects|length }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Total Earnings:</span>
+                            <span class="fw-bold text-success">₹{{ "%.2f"|format(project.seller.get_earnings()) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if related_projects %}
+            <div class="card shadow mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Related Projects</h5>
+                </div>
+                <div class="card-body">
+                    {% for related in related_projects %}
+                    <div class="d-flex mb-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('product_detail', id=related.id) }}" class="text-decoration-none">
+                                    {{ related.title }}
+                                </a>
+                            </h6>
+                            <small class="text-muted">by {{ related.seller.username }}</small>
+                            <div class="text-success fw-bold">₹{{ "%.2f"|format(related.price) }}</div>
+                        </div>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

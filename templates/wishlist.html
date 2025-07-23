@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}My Wishlist - Code Marketplace{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>My Wishlist</h1>
+                <div>
+                    <a href="{{ url_for('browse') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-1"></i>Browse More Projects
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if wishlist_items.items %}
+    <div class="row">
+        {% for item in wishlist_items.items %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary">{{ item.project.language.title() }}</span>
+                        <span class="badge bg-secondary">{{ item.project.category.title() }}</span>
+                    </div>
+                    <h5 class="card-title">{{ item.project.title }}</h5>
+                    <p class="card-text">{{ item.project.description[:100] }}{% if item.project.description|length > 100 %}...{% endif %}</p>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-eye me-1"></i>{{ item.project.views }}
+                        </small>
+                        <small class="text-muted">by {{ item.project.seller.username }}</small>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="h5 mb-0 text-success">₹{{ "%.2f"|format(item.project.price) }}</span>
+                    <div>
+                        <a href="{{ url_for('remove_from_wishlist', project_id=item.project.id) }}" class="btn btn-outline-danger btn-sm me-2" title="Remove from Wishlist">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                        <a href="{{ url_for('product_detail', id=item.project.id) }}" class="btn btn-primary">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if wishlist_items.pages > 1 %}
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="Wishlist pagination">
+                <ul class="pagination justify-content-center">
+                    {% if wishlist_items.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('wishlist', page=wishlist_items.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in wishlist_items.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != wishlist_items.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('wishlist', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if wishlist_items.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('wishlist', page=wishlist_items.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="row">
+        <div class="col-12 text-center">
+            <div class="empty-state py-5">
+                <i class="fas fa-heart-broken fa-4x text-muted mb-3"></i>
+                <h3 class="text-muted">Your Wishlist is Empty</h3>
+                <p class="text-muted">Browse our marketplace to find projects you love.</p>
+                <a href="{{ url_for('browse') }}" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Browse Projects
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
