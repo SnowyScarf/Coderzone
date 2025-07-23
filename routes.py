@@ -136,22 +136,23 @@ def product_detail(id):
                            is_wishlisted=is_wishlisted, reviews=reviews,
                            review_form=review_form, form=form)
 
-
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
     if not current_user.is_seller:
         flash('You need to be a seller to upload projects.', 'danger')
         return redirect(url_for('index'))
-
+    
     form = ProjectForm()
     if form.validate_on_submit():
         file = form.file.data
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        
+        # Save the file to the UPLOAD_FOLDER
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(file_path)
-
+        
         project = Project(
             title=form.title.data,
             description=form.description.data,
@@ -159,15 +160,15 @@ def upload():
             language=form.language.data,
             category=form.category.data,
             tags=form.tags.data,
-            filename=filename,
-            file_path=file_path,
+            filename=filename, # Original filename for download
+            file_path=unique_filename, # Store only the unique filename
             seller_id=current_user.id
         )
         db.session.add(project)
         db.session.commit()
         flash('Project uploaded successfully!', 'success')
         return redirect(url_for('seller_dashboard'))
-
+    
     return render_template('upload.html', form=form)
 
 
